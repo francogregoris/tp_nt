@@ -1,32 +1,38 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
+import { useState, useEffect } from 'react'
+import { supabase } from './lib/supabase'
+import AuthComponent from './components/Auth'
+import NumberGame from './components/NumberGame'
+import './App.css'
 
 function App() {
+  const [session, setSession] = useState(null)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
   return (
-    <Router>
-      <div className="app">
-        <div className="content-wrapper">
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            
-            {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Home />} />
-            </Route>
-            
-            {/* Redirect any unmatched route to login */}
-            <Route path="*" element={<Navigate to="/login" />} />
-          </Routes>
+    <div className="app-container">
+      {!session ? (
+        <AuthComponent />
+      ) : (
+        <div>
+          <button onClick={() => supabase.auth.signOut()}>Cerrar Sesión</button>
+          <NumberGame />
         </div>
-      </div>
-    </Router>
-  );
+      )}
+    </div>
+  )
 }
 
-export default App;
+export default App
